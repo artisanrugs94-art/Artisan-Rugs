@@ -1,0 +1,14 @@
+services:
+  inkedrug:
+    build: .
+    container_name: inkedrug-store
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PRIMARY_DOMAIN=inkedrug.com
+      - APP_URL=https://inkedrug.com

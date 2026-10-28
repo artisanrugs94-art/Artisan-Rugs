@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900">
+  <defs>
+    <linearGradient id="wood3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#28262B"/>
+      <stop offset="100%" stop-color="#19181B"/>
+    </linearGradient>
+    <filter id="tuft3" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+  <rect width="900" height="900" fill="url(#wood3)"/>
+  <g filter="url(#tuft3)">
+    <!-- Fluffy Cloud Silhouette -->
+    <path d="M220 620 C130 620 85 550 110 475 C85 395 145 315 235 315 C270 225 385 185 480 225 C565 175 685 215 715 310 C795 325 830 415 790 490 C815 565 755 635 670 630 L220 620 Z" fill="#FAF8F5" stroke="#111111" stroke-width="26" stroke-linejoin="round"/>
+    <!-- Anime Akatsuki-inspired Crimson Swirl Accents -->
+    <path d="M225 495 C225 435 285 395 345 420 C395 440 390 510 335 520 C295 528 275 495 295 470" fill="none" stroke="#D62828" stroke-width="28" stroke-linecap="round"/>
+    <path d="M535 395 C535 335 595 295 655 320 C705 340 700 410 645 420 C605 428 585 395 605 370" fill="none" stroke="#D62828" stroke-width="28" stroke-linecap="round"/>
+    <path d="M430 560 C465 515 535 515 565 560" fill="none" stroke="#2EC4B6" stroke-width="22" stroke-linecap="round"/>
+  </g>
+</svg>

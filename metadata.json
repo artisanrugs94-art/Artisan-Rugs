@@ -1,0 +1,6 @@
+{
+  "name": "Kazumi Rugs",
+  "description": "Shop handmade made-to-order tattoo flash and anime tufted rugs by Kazumi Rugs. Custom sizes, bold outlines, and worldwide shipping.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

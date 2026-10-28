@@ -1,0 +1,279 @@
+You are a senior full-stack engineer and product designer. Build a COMPLETE, production-quality, fully functional e-commerce website for a brand called [BRAND NAME]. The store sells handmade tufted rugs in TATTOO-FLASH and ANIME styles (tiger heads, panthers, snakes, grim reaper with rose, death's-head moth, kewpie-devil characters, anime and cartoon characters, 3D skeleton rugs, fluffy cloud rugs). Rugs have bold black outlines and flat saturated colors. EVERY rug is MADE TO ORDER: production and processing takes 10-15 days after order confirmation. Customers can pick standard sizes or request a custom size and custom design.
+
+The storefront must closely match Etsy's mobile app and website (layout, product page, checkout), with an edgy tattoo/anime personality. The admin panel (/admin) must be an exact clone of the ETSY SHOP MANAGER (seller dashboard) experience, optimized for a seller who manages 1,000+ listings and already knows Etsy's seller tools. Deliver complete working code, never placeholders, TODOs or pseudo-code. Build in the order given in section 18 (BUILD ORDER).
+
+==================================================
+1. TECH STACK AND ARCHITECTURE
+==================================================
+- React 18 + Vite + TypeScript + Tailwind CSS + React Router + React Query (or Zustand). Mobile-first, fully responsive (360px to 1920px).
+- Firebase backend: Firestore (database, real-time listeners), Firebase Auth (email/password + Google sign-in; admin roles via custom claims or an "admins" collection), Firebase Storage (images), Cloud Functions (all secret-key operations: payment verification, webhooks, WhatsApp API, emails, shipping API, bulk jobs, counters, scheduled jobs), Firebase Hosting.
+- Never expose secret keys in frontend code. Public keys go in .env; private keys go in Cloud Functions secrets / "private_settings". Provide a .env.example listing every variable.
+- Folder structure: /src/components, /src/pages, /src/admin, /src/hooks, /src/services, /src/context, /src/utils, /src/types, /src/i18n, /functions. Clean, modular, commented code.
+- Seed the database with 8 sample products (sizes, color variations with images, sale on 3 of them), 4 categories, 3 shop sections, 6 sample reviews, 2 coupons, 2 processing profiles, 2 shipping profiles, default settings, so everything looks complete on first load. Provide a "Seed demo data" button in admin Settings.
+
+==================================================
+2. DESIGN SYSTEM
+==================================================
+- Etsy-inspired: warm off-white background (#FAF8F5), dark charcoal text, rounded pill buttons, soft rounded cards, outlined rounded inputs, heart icons, green sale prices (#2F6B2F), cream highlight boxes (#F5EBC8). Dark theme with toggle (default follows system).
+- Accent colors from the rug art: red (#D62828), teal (#2EC4B6), mustard (#E9A820), black (#111).
+- Fonts: chunky bold display font for storefront headings (e.g. "Archivo Black", "Bangers" or "Rubik Mono One") and Inter for body. The admin panel uses Inter only, clean and dense like Etsy Shop Manager.
+- Buttons: solid black pill (primary), outlined pill (secondary), green pill (WhatsApp). Micro-animations, skeleton loaders, toast notifications with Undo.
+- Accessible: labels, focus rings, alt text, aria attributes, 4.5:1 contrast, full keyboard navigation.
+
+==================================================
+3. AUTOMATIC COUNTRY, CURRENCY AND LANGUAGE (LIKE ETSY)
+==================================================
+- On first visit detect the visitor's country automatically (free IP geolocation such as ipapi.co or ipwho.is, fallback to navigator.language, final fallback to the store default country). Cache in localStorage.
+- Map country to currency automatically (India = INR, USA = USD, UK = GBP, Eurozone = EUR, Canada = CAD, Australia = AUD, UAE = AED, Singapore = SGD, Japan = JPY, etc.). Support at least 30 currencies with a country-to-currency map file.
+- Admin sets ONE base currency ([BASE CURRENCY]) in which prices are entered. All visitor prices are converted from the base currency using live exchange rates (open.er-api.com or exchangerate.host). Cache rates in Firestore (settings/exchangeRates), refresh via scheduled Cloud Function every 12 hours; frontend falls back to cached rates if the API fails.
+- Format with Intl.NumberFormat using the correct symbol and locale (₹1,999, $24.99, £19.99, €22,50). Handle zero-decimal currencies (JPY). Optional admin setting for price rounding (.99 style or clean numbers).
+- Header and footer contain a "Region and currency" selector (flag + country + currency code) to manually change country, currency and language. Save in localStorage and in the customer profile when logged in.
+- Currency change applies instantly everywhere (grid, product page, cart, checkout, sale prices, shipping fees) without reload. On checkout, show a note when charged currency differs: "Prices shown in [currency]. You will be charged in [charged currency]".
+- Payment currency logic: charge in the visitor's currency if the active gateway supports it (Stripe, PayPal, Razorpay International), otherwise charge in the base currency and show the converted amount. Store in every order: displayCurrency, chargedCurrency, exchangeRateUsed, totals in both currencies.
+- Auto-select shipping zone and fee by country; auto-fill country in the checkout address form.
+- i18n with react-i18next: English and Hindi ready, structure for more languages, auto-detect from browser with manual switch.
+
+==================================================
+4. GLOBAL LAYOUT (STOREFRONT)
+==================================================
+- Announcement bar (admin-editable): e.g. "Festival Sale: 20% off sitewide" and "Made to order, ships in 10-15 days".
+- Header: logo, large search bar with live suggestions (product, category, tags), region/currency selector, account icon, favourites icon, cart icon with live count. Desktop shows a category menu below.
+- Mobile floating rounded bottom navigation: Home, Shop, Favourites, You (account), Cart (count badge), visible on all customer pages except checkout.
+- Footer: About, Contact, Shipping and Production Policy, Returns, FAQ, Track Order, Privacy Policy, Terms of Use, social icons (Instagram, Pinterest, WhatsApp, YouTube, Facebook), newsletter signup (Firestore + Mailchimp/Brevo hook), payment icons, region/currency selector.
+- Floating WhatsApp chat button (above the bottom nav on mobile) opening wa.me/[WHATSAPP NUMBER] with a greeting message. Toggle in admin.
+- Cookie consent banner controlling analytics and ad pixels.
+
+==================================================
+5. HOMEPAGE
+==================================================
+Hero banner (admin-editable image, headline, CTA), active Sale section with countdown to sale end, featured products carousel, shop by category tiles (Tattoo Rugs, Anime Rugs, Animals, Skeleton 3D, Custom Rugs), "Custom Order" promo block (upload your idea, opens WhatsApp), "How it works" in 4 steps (Choose, Customize, We make it by hand in 10-15 days, Delivered), bestsellers, new arrivals, recently viewed, customer photo gallery, testimonials, FAQ accordion, newsletter signup. Every section can be shown, hidden and reordered from the admin Homepage Editor.
+
+==================================================
+6. SHOP PAGE
+==================================================
+- 2-column grid on mobile, 3-4 columns on desktop, infinite scroll or "Load more".
+- Product card (Etsy style): square image (second image on hover on desktop), heart button top right, "Viewed" badge if already opened, "Sale"/"Bestseller"/"New" badge, title truncated to 1 line, rating row "4.9 ★ (82)", price block (GREEN sale price + struck-through original + "(15% off)"), green "Free shipping" label when applicable. Show price "from" the lowest size price with a "+" when sizes vary.
+- Filters (drawer on mobile, sidebar on desktop): category, tags, price slider, color, on sale, free shipping, rating, custom-friendly. Sort: Most relevant, Newest, Price low to high, Price high to low, Top rated, Best selling. Search with highlighted matches. Filters reflected in URL query params. Empty state and skeletons.
+
+==================================================
+7. PRODUCT DETAIL PAGE (replicate Etsy's mobile product page exactly, in this order)
+==================================================
+1. IMAGE CAROUSEL: full-width swipeable with dot indicators. Floating round buttons over the image: Back (top left), Message (WhatsApp icon), Favourite heart, Share (top right). A "Find similar" pill at the bottom right opening the shop filtered by the same category/tags. Desktop: vertical thumbnail strip, hover zoom, fullscreen lightbox. Pinterest "Save" button on the image (hover on desktop, always visible on mobile).
+2. BADGES ROW: green pill "Sale ends on [date]" (only when a sale is active), grey pill "Made to order", and "Only X available" when limited stock is set.
+3. PRICE BLOCK: large green sale price (with "+" if price varies by size), original price struck through, "(15% off)" beside it. Updates live with size, color and currency.
+4. TITLE: bold, 2 lines max, then "Made by [BRAND NAME]" with a small verified badge linking to the shop.
+5. INFO ROW, 3 columns: "Est. delivery" (auto date range = today + 10-15 production days + shipping days for the visitor's country), "Delivery" (Free or fee in the visitor's currency), "Ratings" (5.0 ★ with arrow, scrolls to reviews).
+6. HIGHLIGHT NOTICE BOX (cream/yellow): "Made to order. Production and processing takes 10-15 days after order confirmation." If limited stock is enabled, show "Selling fast! Only X left" with a red square marker.
+7. SELECT A SIZE: Etsy-style outlined rounded dropdown ("Select a size / Select an option"). Options 60x60cm, 90x90cm, 120x120cm, 150x150cm, plus "Custom size" (each size has its own price from admin). Custom size reveals width and height inputs (cm/inch toggle) and the note "Final price will be confirmed on WhatsApp". Add to cart and Buy now are disabled with a clear message until a size is chosen.
+8. SELECT COLOR / STYLE: image-swatch circles or pills (Classic Black, Blue Tiger, Orange Tiger, Anime Pink...). SELECTING A COLOR SWAPS THE MAIN CAROUSEL IMAGE to that variation's own image, highlights the matching thumbnail, and updates the price if the variation has a price adjustment. Each variation has its own images, price adjustment, stock.
+9. "+ ADD PERSONALISATION (optional)": expandable text box (names, colors, special requests) with optional reference image upload (Firebase Storage). Saved with the cart item.
+10. BUTTONS: "Add to cart" (outlined pill, left) and "Buy now" (solid black pill, right). Below: "By making a purchase, you agree to our Terms of Use and Privacy Policy." (linked).
+11. "MESSAGE US ON WHATSAPP" button (green): opens https://wa.me/[WHATSAPP NUMBER]?text=... with a prefilled URL-encoded message: product name, selected color, size or custom dimensions, personalisation text, price shown, and product page URL.
+12. PINTEREST "SAVE" button near the title/share area too, using https://www.pinterest.com/pin/create/button/?url={productUrl}&media={selectedVariationImageUrl}&description={title + short description}. Add Open Graph, Twitter Card and Pinterest Rich Pin meta tags (og:type=product, product:price:amount, product:price:currency, og:availability) per product page (react-helmet-async plus a Cloud Function or prerender so crawlers see the tags).
+13. ITEM REVIEWS (collapsible, chevron): big overall rating "5.0 ★", "N item reviews", sub-rating bars for Item quality, Delivery, Customer service (number out of 5), then review cards (stars, text, optional photos, name, date, seller reply). Footer: "All reviews are from verified buyers". Verified buyers (matched by order) can submit reviews with photos from their account or an emailed link. Moderated in admin.
+14. ITEM DETAILS: 2-column grid of small outlined cards with icons: Material (Acrylic yarn), Personalizable (Yes), Handmade (Yes), Production time (10-15 days), Backing (Non-slip), Care (Spot clean). Editable per product. "Preview item size" link opens a modal with an SVG scale illustration (door, person, sofa) that changes with the selected size.
+15. DESCRIPTION: truncated to 4 lines with a "See full description" pill that expands it (emojis, line breaks, bullets).
+16. SHIPPING AND POLICIES: icon rows: Estimated delivery range, "Ships worldwide from [COUNTRY]", "Returns & exchanges accepted" (custom-size and personalised items are non-returnable), and a "See delivery & return details" pill opening a modal with the full policy.
+17. SELLER CARD: shop name, logo, rating, sales count, "Message seller" (opens on-site message thread and WhatsApp option) and "Follow" (saved to account).
+18. "MORE ITEMS FROM THIS SHOP": 2-column product card grid and a "See all items (N)" button.
+19. "MORE LIKE THIS": 2-column related products (same category/tags) with ratings, price, free-shipping label, plus a "View more" pill.
+20. STICKY BOTTOM "ADD TO CART" BAR on mobile after scrolling past the main buttons, above the bottom nav.
+Also: breadcrumb on desktop, recently viewed strip, share sheet (copy link, WhatsApp, Pinterest, Facebook, X), JSON-LD Product schema (price, currency, availability, aggregateRating, review).
+
+==================================================
+8. FAVOURITES, ACCOUNT AND AUTH
+==================================================
+- Favourites: heart toggles stored in localStorage for guests, synced to Firestore after login. Favourites page with grid and "Move to cart".
+- Checkout works as GUEST (no forced signup). Optional account via email/password or Google.
+- "You" page: profile, saved addresses, order history with status and reorder, favourites, followed shop, messages with the shop, my reviews, region/currency/language preferences, logout.
+
+==================================================
+9. CART
+==================================================
+Slide-in drawer plus full cart page. Each line shows the chosen variation image, title, color, size, personalisation text, unit price (green sale price with struck-through original), quantity stepper, remove, "Save for later". Summary: subtotal, sale savings, coupon discount, estimated shipping (by country), total, and the note "Made to order: ready in 10-15 days, then shipping". Coupon field with validation. Persist in localStorage and sync to Firestore for logged-in users. Re-validate prices and sale status against the database before checkout.
+
+==================================================
+10. CHECKOUT (Etsy-style, single page, mobile friendly)
+==================================================
+- Contact (email, phone with country code), shipping address (country auto-selected, state/province by country, PIN/ZIP validation), billing same-as-shipping toggle, order notes/custom requests, delivery estimate, order summary with savings, coupon code.
+- Payment methods (each enabled and configured in admin Settings, all implemented): (1) Razorpay (cards, UPI, netbanking, wallets) for India with optional international cards; (2) Stripe (cards, Apple Pay, Google Pay, multi-currency); (3) PayPal; (4) Cash on Delivery (India only, optional advance deposit, max order value); (5) "Pay later via WhatsApp" for custom-size orders, creating the order with status "Awaiting price confirmation".
+- Payment flow secured via Cloud Functions: create the payment order server-side, verify signature/webhook server-side, then mark the order Paid. Never trust client-side success alone.
+- Confirmation page: order number, summary, estimated production and delivery dates, "Confirm your order on WhatsApp" button (prefilled with order number and items), "Track order" link. Send confirmation email and optional WhatsApp message.
+- Form validation, loading and error states, double-submit protection, abandoned checkout capture (email/phone saved to "abandonedCarts" for recovery).
+
+==================================================
+11. ORDER TRACKING AND STATIC PAGES
+==================================================
+- Track Order page: order number + email/phone; visual timeline (New, Confirmed, In Production, Shipped, Delivered) with timestamps, tracking number and courier link, and production progress photos uploaded by the admin.
+- Pages editable from the admin Pages editor: About, Contact (form saved to Firestore + WhatsApp link), Shipping and Production Policy, Returns and Refunds, FAQ, Privacy Policy, Terms of Use, Size Guide, Custom Order Guide.
+
+==================================================
+12. ADMIN PANEL (/admin): ETSY SHOP MANAGER CLONE
+==================================================
+Protected by Firebase Auth + admin role. Roles: Owner, Manager, Staff (granular permissions; staff cannot see finances or settings). Fast, dense, keyboard-friendly; desktop-first, fully usable on mobile.
+
+12.A SCALE AND PERFORMANCE (1,000+ LISTINGS)
+- Server-side pagination (25/50/100 per page) using Firestore cursors; never load all products at once. Virtualized tables.
+- Search across title, tags, SKU, category, section via Algolia or Typesense (admin chooses in Integrations; fallback to Firestore prefix search). Results update as you type.
+- Denormalized counters on each listing (views, visits, favourites, orders, revenue) maintained by Cloud Functions so the Listings table needs no extra queries.
+- Composite indexes for every filter/sort combination. Optimistic UI, background saving, "Saved" toasts.
+- Batch writes of max 500; bulk jobs run in Cloud Functions. README includes a Firestore cost and read-optimization note.
+
+12.B LAYOUT
+Collapsible left sidebar with icons: Dashboard, Listings, Orders & shipping, Messages, Reviews, Stats, Marketing (Sales and discounts, Coupons, Feeds and social), Finances, Customers, Custom requests, Homepage and pages editor, Shop settings (Info & appearance, Policies, Shipping profiles, Processing profiles, Payments, Integrations, Staff, Data). Top bar: global search (listings, orders, customers), "Add a listing" button, notifications bell (new orders, low stock, messages), "View shop" link, account menu. Breadcrumbs and page title on every screen. Same warm Etsy look.
+
+12.C DASHBOARD
+- Greeting and shop name; "Since your last visit" summary (new orders, messages, favourites, reviews).
+- To-do cards: orders to confirm, orders due to ship (days left against the 10-15 day window), unread messages, reviews to reply to, low-quality listings, custom requests waiting for a quote.
+- Performance tiles with date-range picker (Today, 7, 30, 90 days, This year, Custom) and comparison to the previous period: Visits, Orders, Conversion rate, Revenue, Average order value, Favourites; each with a sparkline linking to Stats.
+- Revenue and orders charts, top listings, traffic sources (Pinterest, Instagram, WhatsApp, Google, Direct), sales by country and currency.
+- Recent orders table with quick status change; active and scheduled sales; "Shop health" checklist (photos, tags, policies, processing profile, payment setup).
+- Quick actions: Add listing, Start a sale, Create coupon, Import listings.
+
+12.D LISTINGS MANAGER (CORE FEATURE, like Etsy's Listings page)
+- Left filter panel: Status (Active, Draft, Expired, Sold out, Inactive, Scheduled), Section (with counts), Category, Sale status, Shipping profile, Processing profile, Personalization, Tags, "Low quality score", Date created, Price range, Stock. Saved filters/views ("My bestsellers", "Needs photos").
+- Toolbar: search, sort (Most recent, Oldest, Title A-Z, Price low/high, Most views, Most favourites, Most orders, Highest revenue, Last modified), List/Grid toggle, page size, "Select all N on this page" and "Select all N matching filters" (works across 1,000+ items), column chooser, density toggle.
+- Row: checkbox, thumbnail, title, status pill, price (green sale price when on sale), quantity (or "Made to order"), section, processing time, stats (views, favourites, orders in the selected period), listing quality score, last modified, "..." menu; quick-action icons on hover.
+- Row actions: Edit, QUICK EDIT, COPY LISTING, Preview, View on shop, Share (copy link, Pinterest, WhatsApp), Renew, Activate/Deactivate, Add to section, Apply sale (10/15/20/Custom %), End sale, Pin to Pinterest, Delete (with confirmation).
+- QUICK EDIT inline: click title, price, quantity, status, section, processing time or tags in the table to edit and save with Enter, no reload. Also a QUICK EDIT slide-over drawer with most-used fields (title, price, per-size prices, quantity, tags, description, section, status, sale %, processing profile, shipping profile) plus "Save" and "Open full editor".
+- COPY LISTING: exact duplicate (photos, description, tags, variations, sizes, prices, profiles, personalization) created as a DRAFT titled "[Original title] (copy)" and opened in the editor. Options: "Copy and edit", "Copy 5 times", "Copy to new color variant". Bulk copy for selected listings.
+- BULK EDIT for any number of selected listings: status, section, category, tags (add/remove/replace), title (prefix/suffix, find and replace), description (find and replace, append block), price (set, increase/decrease by % or amount, round to .99), size prices, quantity/stock mode, processing profile, shipping profile, free shipping, personalization on/off, materials, renewal, apply sale %, end sale, add to Pinterest feed, activate, deactivate, delete. Show a before/after preview of the first 10 items and the total count before confirming. Run in batches via Cloud Function with a progress bar, and a one-click UNDO of the last bulk action (previous values stored in an "undo" collection for 24 hours).
+- Drag-and-drop reorder within a section; Shop Sections manager (create, rename, reorder, delete, assign in bulk).
+- Renew/Deactivate/Reactivate like Etsy; listings never expire unless "listing expiry" is enabled.
+- Listing quality score (photo count, title length, 13 tags used, description length, variations set, processing profile set, alt text) with fix suggestions.
+- Keyboard shortcuts: N (new listing), / (focus search), E (edit selected), D (duplicate), Esc (close drawer), arrow keys to move rows; help modal listing shortcuts.
+
+12.E LISTING EDITOR (Etsy "Add a listing" style)
+Single long page with sticky left step navigator and sticky bottom bar (Save as draft, Preview, Publish):
+1. About this listing: Who made it (I did), What is it (Finished product), When was it made (Made to order).
+2. Photos and video: up to 20 photos, bulk multi-upload (drag 20 at once), drag-to-reorder, first = cover, auto-compress to WebP, square crop tool, alt text per image, link images to color variations, optional video.
+3. Title (140 chars with counter and keyword tips), Category, Shop section, Description (rich text, emojis, templates), "Insert saved snippet" (reusable blocks: care instructions, production notes).
+4. Attributes: primary color, secondary color, material (acrylic yarn), style, room, occasion, holiday, dimensions, weight.
+5. Tags (13 max with suggestions and "copy tags from another listing") and Materials.
+6. Price and inventory: base price, compare-at price, SKU, quantity mode (Made to order/unlimited, or limited with "Only X left").
+7. VARIATIONS (Etsy-style table): variation types "Size" and "Color/Style" (plus custom types). Auto-generates every combination with columns Size, Color, Price, Quantity, SKU, Visible toggle. Bulk price tools ("set all", "increase by %"), price per size or per combination. Each color links to its photos (selecting a color on the storefront swaps the image). Custom size option with width/height inputs and a "price on request via WhatsApp" toggle.
+8. Personalization: enable, buyer instructions, character limit, required or optional, allow reference image upload.
+9. Processing and shipping: PROCESSING PROFILE (default "Made to order: 10-15 days after order confirmation", min 10 / max 15, editable profiles, optional rush profile), SHIPPING PROFILE (origin, zones, free shipping, per-country rates, transit days), weight and package size, returns policy (custom and personalised items non-returnable).
+10. Settings: automatic renewal, featured toggle, status and scheduled publish date, visibility.
+11. SEO and Social: slug, meta title and description (auto-generate and edit), Pinterest pin title/description/board, Open Graph preview.
+12. Live preview (mobile and desktop) of the product page and listing card. Autosave every 30 seconds, unsaved-changes warning, version history with restore. Inline validation and a "Listing checklist" showing what is missing before publishing.
+
+12.F IMPORT / EXPORT FOR 1,000+ PRODUCTS
+- Import from CSV or Excel with a downloadable template (title, description, category, section, tags, price, sizes and size prices, colors, color image filenames, quantity, processing profile, shipping profile, personalization, status, SKU) and a ZIP of images matched by filename. Column mapping, per-row validation report, dry-run preview, progress bar with resume on failure. Also "Import from Etsy" accepting Etsy's exported listings CSV with automatic column mapping.
+- Export all or filtered listings to CSV/Excel; export orders, customers, sales and finances to CSV.
+- Bulk image upload tool: drop many images to auto-create draft listings (one per image or per folder).
+- Listing templates: save any listing as a template and create new listings from it.
+
+12.G ORDERS AND SHIPPING
+- Real-time (onSnapshot) with sound/visual notification for new orders. Tabs with counts: New, Confirmed, In production, Ready to ship, Shipped, Delivered, Completed, Cancelled, Refunded, Awaiting price confirmation, and "Overdue" (past the 15-day window). Each order shows a production deadline badge ("Day 6 of 15"; amber after day 10, red after day 15).
+- Rows/cards: buyer, items with image, color, size, personalization text and uploaded reference image, total (charged currency plus base-currency equivalent), payment status, ship-by date, country flag. Bulk actions: change status, print packing slips, print labels, mark as shipped with tracking, export CSV.
+- Search by order number, name, phone, email; filters by status, payment status, date range, country, payment method.
+- Order detail (like Etsy): buyer info, ship-to address, notes, items, total breakdown (items, sale discount, coupon, shipping, tax), payment method and ID, exchange rate used, tracking section (courier, tracking number, ship date, "Mark as shipped" and notify buyer), production progress photo upload (shown to the customer), internal notes, status history timeline (timestamp and admin name), "Message buyer" (inbox + WhatsApp prefilled), refund (full or partial via Stripe/Razorpay/PayPal Cloud Function), cancel, print invoice and packing slip and shipping label, "Edit price for custom order and send payment link on WhatsApp".
+- Optional automatic customer notifications on each status change via email and WhatsApp. Saved reply templates for order messages.
+
+12.H MESSAGES (BUYER INBOX)
+Etsy-style conversations: list with unread counts, filters (Unread, Custom requests, Order-related, Archived, Starred), thread view with images and attachments, canned replies, convert conversation into a custom order with a quote, link to the buyer's orders, "Reply on WhatsApp" button. "Message seller" on the product page creates a conversation here.
+
+12.I CUSTOM ORDER REQUESTS
+Inbox for custom design/size inquiries from the site (form and WhatsApp leads) with status (New, Quoted, Accepted, Rejected) and a quote builder that generates a one-click payment link and a prefilled WhatsApp message.
+
+12.J REVIEWS
+Approve, hide, delete, reply publicly, filter by rating, import reviews, request reviews automatically after Delivered.
+
+12.K STATS
+Etsy Stats clone: Visits, Views, Orders, Conversion rate, Revenue, Favourites with date-range comparison; traffic sources and keywords; "Listings" tab with a sortable, exportable per-listing table; "Customers" tab (new vs returning, countries); funnels (view, add to cart, checkout, purchase) shop-wide and per product; sales by country, currency, color and size; sale and coupon performance; CSV export.
+
+12.L MARKETING
+- SALES AND DISCOUNTS (ONE-CLICK): create a sale with name, percentage (quick buttons 5/10/15/20/25/30/40/50 and custom), start and end date/time (or no end), scope: whole shop, sections, categories, or selected listings (checkbox multi-select with search), exclusions, minimum order, country targeting. Presets: Festival Sale, Weekend Sale, Flash Sale (24h), Clearance, New Year, Diwali, Black Friday (prefill name, percent, dates). Items keep their original price in the database; the storefront computes the sale automatically: green sale price, struck-through original, "(X% off)", "Sale ends on [date]" badge, homepage sale section and countdown. Scheduling (auto start and end via scheduled Cloud Function plus server-side date check), "End sale now", "Extend sale", duplicate a past sale, lists of active/scheduled/ended sales with performance (orders and revenue). Highest discount wins when sales overlap (explained in the UI). Preview before confirming ("12 listings will change. Example: ₹4,000 to ₹3,400").
+- COUPONS: percentage or flat (converted per currency), free-shipping coupons, total and per-customer limits, expiry, minimum order, applicable products/categories, auto-generate code, stats per coupon.
+- Abandoned carts with "Send recovery message on WhatsApp/email", simple email campaign composer, newsletter subscribers export, Pinterest/Google/Meta feed managers, social share kit.
+
+12.M FINANCES
+Payment account overview, payouts/settlements log (manual or gateway sync), revenue by month, fees (gateway fees, optional listing/transaction fee settings), expenses (manual entries), profit estimate, tax/GST summary, downloadable monthly statements and CSV exports.
+
+12.N HOMEPAGE AND PAGES EDITOR
+Edit hero, announcement bar, section order and visibility, banners, FAQ, testimonials, static pages, menus, footer links.
+
+12.O CUSTOMERS
+List with name, country, orders, total spent, last order, tags; customer detail with order history, notes, WhatsApp button; export CSV; newsletter subscribers list.
+
+12.P SHOP SETTINGS
+- General: store name, logo, banner, favicon, announcement, about, contact email, phone, WhatsApp number, address, timezone, default language, base currency, enabled currencies, rounding rules, auto-detect currency toggle, vacation mode (pauses shop with a banner).
+- Processing profiles manager (default "10-15 days", create others), Shipping profiles manager (create, duplicate, assign in bulk), shipping zones by country list with rate type (flat, per item, free over amount, free for all), transit days, couriers, "Ships from" country.
+- Taxes/GST: GST for India, tax by country, inclusive/exclusive toggle, GSTIN on invoices.
+- Payments: enable/disable and enter keys for Razorpay, Stripe, PayPal, COD rules (secrets reachable only by Cloud Functions).
+- Integrations: each a card with Connected/Not connected status, test button, help link (see section 13).
+- Notifications: toggles and editable templates for order confirmation, status updates, abandoned cart, review request (email and WhatsApp).
+- Policies: returns, shipping, privacy, terms.
+- Staff and roles: invite by email, assign roles with granular permissions, activity log.
+- Data: backup/export all data (JSON/CSV), seed demo data, danger zone.
+
+12.Q UX DETAILS
+Sticky table headers, saved column layouts, density toggle, helpful empty states, skeleton loaders, confirmation modals for destructive actions, toasts with Undo, real-time Firestore listeners, dark mode, mobile layout with bottom tab bar (Dashboard, Orders, Listings, Messages, More).
+
+==================================================
+13. INTEGRATIONS (ALL CONNECTED, CONFIGURABLE IN ADMIN > SHOP SETTINGS > INTEGRATIONS)
+==================================================
+1. WHATSAPP: (a) click-to-chat buttons everywhere via wa.me deep links with prefilled messages; (b) optional WhatsApp Business Cloud API (Meta) through Cloud Functions for automatic order confirmations, status updates, payment links and review requests using approved templates (admin enters phone number ID, access token, template names); (c) wa.me fallback when the API is not connected.
+2. PINTEREST: Save button on product images and near the title, rich pin meta tags, Pinterest Tag (page visit, add to cart, checkout), verified-domain meta tag field, auto-generated product catalog feed at /feeds/pinterest.csv (title, description, link, image link, price with currency, availability, category), per-listing "Pin it" shortcut in admin.
+3. GOOGLE ANALYTICS 4 + GOOGLE TAG MANAGER: page_view, view_item, add_to_cart, begin_checkout, purchase with value and currency; consent-mode aware.
+4. META (Facebook/Instagram): Meta Pixel (ViewContent, AddToCart, InitiateCheckout, Purchase), optional Conversions API via Cloud Function, Instagram feed link, catalog feed at /feeds/meta.xml.
+5. GOOGLE MERCHANT CENTER: feed at /feeds/google.xml with price per enabled currency.
+6. PAYMENTS: Razorpay, Stripe, PayPal with server-side order creation, signature verification, webhooks, refunds.
+7. EMAIL: Resend, Brevo or Firebase "Trigger Email" extension (admin picks provider and key) for order confirmation, status update, shipping with tracking, review request, abandoned cart, welcome; responsive HTML templates editable in admin.
+8. SHIPPING AND TRACKING: Shiprocket (India) with optional "create shipment" via Cloud Function, plus AfterShip/17TRACK-style tracking links.
+9. GOOGLE SIGN-IN for customers.
+10. EXCHANGE RATES API and IP GEOLOCATION API (section 3).
+11. NEWSLETTER: Mailchimp or Brevo list sync.
+12. SEARCH: Algolia or Typesense for listings search (12.A); Google Search Console verification field, auto-generated sitemap.xml and robots.txt.
+13. Optional live chat (Crisp/Tawk) script field and a custom head/body scripts field.
+14. IMAGES: Firebase Storage or Cloudinary with automatic WebP and responsive sizes.
+15. OUTGOING WEBHOOKS (Zapier/Make/n8n) on new order, status change, new custom request, new message.
+All keys entered in admin are stored in Firestore "private_settings" (readable only by Cloud Functions/admins) or Secret Manager; the frontend receives only public IDs.
+
+==================================================
+14. DATA MODEL (FIRESTORE)
+==================================================
+- products: id, title, slug, description, categoryId, sectionId, tags[], materials[], images[{url, alt, variationId}], video, basePrice, comparePrice, sku, sizes[{id, label, widthCm, heightCm, price, active}], variations[{id, name, swatch, imageUrls[], priceAdjustment, stock, sku, active}], combinations[{sizeId, variationId, price, quantity, sku, visible}], allowCustomSize, customSizePriceOnRequest, personalisation{enabled, instructions, required, charLimit, allowImage}, stockMode, stockCount, processingProfileId, shippingProfileId, freeShipping, itemDetails{}, attributes{}, seo{}, pinterest{}, status, scheduledAt, qualityScore, counters{views, visits, favourites, orders, revenue}, versions[], createdAt, updatedAt.
+- categories, sections, processingProfiles, shippingProfiles, sales (id, name, percent, scope, categoryIds[], sectionIds[], productIds[], excludedIds[], startAt, endAt, status, minOrder, countries[]), coupons.
+- orders: orderNumber, customer, addresses, items[{productId, title, image, variationName, sizeLabel, customDims, personalisation, referenceImageUrl, unitPriceBase, salePercent, quantity}], subtotals, discounts, shipping, tax, totals in base and charged currency, displayCurrency, chargedCurrency, exchangeRateUsed, payment{method, status, id}, status, statusHistory[{status, at, by}], productionDeadline, trackingNumber, courier, productionPhotos[], internalNotes, source/UTM, createdAt.
+- conversations (with messages subcollection), customRequests, customers, reviews, abandonedCarts, subscribers, pages, homepage, undo (bulk action snapshots with 24h TTL), importJobs, listingTemplates, snippets, expenses, payouts, settings (public), private_settings (secret), exchangeRates, activityLog, webhooks.
+- Provide complete Firestore Security Rules (public read for active products, categories, sections, sales and published reviews; customers read only their own orders and conversations; validated order creation; admin-only writes with role checks; private_settings unreadable by clients), Storage rules, and all required composite indexes.
+
+==================================================
+15. SEO, PERFORMANCE, SECURITY
+==================================================
+- SEO: unique title/meta per page, canonical URLs, clean slugs, JSON-LD (Product, BreadcrumbList, Organization), sitemap.xml, robots.txt, OG/Twitter/Pinterest tags, hreflang for languages.
+- Performance: route code-splitting, lazy-loaded WebP images with width/height and blur placeholders, cached queries, Lighthouse 90+ on mobile.
+- Security: zod validation, sanitized rich text, rate limiting on forms via Cloud Functions, reCAPTCHA/App Check on contact and checkout, no secrets in the client, role checks on every admin route and function.
+- PWA: manifest and service worker (installable, offline fallback page). Error boundaries, retry buttons, friendly 404.
+
+==================================================
+16. PROCESSING TIME RULE (APPLIES EVERYWHERE)
+==================================================
+All rugs are made to order. Default processing time is "10-15 days after order confirmation", driven by Processing Profiles in admin (never hard-coded). It appears on the product page notice, estimated delivery calculation, cart, checkout, confirmation email and WhatsApp messages, Track Order page, and the admin production-deadline badges ("Day X of 15", amber after day 10, red/Overdue after day 15).
+
+==================================================
+17. ACCEPTANCE TESTS (ALL MUST PASS)
+==================================================
+1. A visitor from India sees ₹ prices automatically; switching region to USA shows $ instantly everywhere.
+2. Add a product in admin (3 colors, 4 sizes, images per color); it appears in the shop and selecting each color swaps the image.
+3. Click "Apply 15% sale" on a product; the storefront instantly shows the green sale price, struck-through original, "(15% off)" and "Sale ends on" badge, and the sale ends automatically at the end date.
+4. The WhatsApp button opens a prefilled message with product, color, size and URL. The Pinterest Save button opens the pin dialog with the right image, URL and description.
+5. Place an order (online payment and COD); it appears in admin Orders in real time with a notification and a "Day X of 15" badge. Overdue orders appear in the Overdue tab.
+6. Change the order status in admin; the Track Order page and customer notification update.
+7. A custom-size request creates a quote flow with a payment link sent on WhatsApp.
+8. Reviews from verified buyers appear after admin approval.
+9. Import 1,000 listings from CSV + image ZIP without freezing; the Listings page loads its first page in under 2 seconds and search is instant.
+10. Quick-edit a price inline; the storefront updates in real time.
+11. Select 200 listings, increase price 10% and apply a 15% sale; the preview shows before/after; UNDO restores previous values.
+12. Copy a listing; a draft duplicate opens with all photos, variations and tags intact.
+13. A buyer message from the product page appears in admin Messages and can be answered on-site or via WhatsApp.
+14. Etsy listings CSV import maps columns and creates listings.
+
+==================================================
+18. BUILD ORDER AND DELIVERABLES
+==================================================
+Build in this order and make each step work before moving on: (1) project setup, design system, Firebase config, types, routing; (2) data model, security rules, indexes, seed data; (3) currency/country detection and i18n; (4) shop, product card, product page; (5) favourites, cart, checkout, payments; (6) orders, tracking, customer account, messages; (7) admin: layout, dashboard, listings manager with quick edit, copy, bulk edit and undo; (8) admin: listing editor with variations, import/export; (9) admin: orders and shipping, messages, custom requests, reviews, customers; (10) admin: sales and discounts, coupons, stats, finances, settings, homepage editor; (11) integrations and feeds; (12) SEO, PWA, performance; (13) run the acceptance checklist.
+Deliver: complete source code for every file, Cloud Functions code, .env.example, Firestore and Storage rules, indexes, and a step-by-step README covering Firebase project creation, enabling Auth/Firestore/Storage/Functions (Blaze plan note), environment variables and secrets, creating the first admin account, connecting each integration, importing products, deploying to Firebase Hosting, connecting a custom domain, and a Firestore cost-optimization note.
+Do not output placeholders, TODO comments or pseudo-code. If output length is a limit, continue in clearly labeled parts without skipping any file, and wait for me to say "continue" between parts.

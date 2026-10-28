@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --bg-canvas: #FAF8F5;
+    --bg-surface: #FFFFFF;
+    --bg-cream: #F5EBC8;
+    --text-primary: #1A1918;
+    --text-muted: #5F5B55;
+    --border-subtle: #E6E1D8;
+    --sale-green: #2F6B2F;
+    --accent-red: #D62828;
+    --accent-teal: #2EC4B6;
+    --accent-mustard: #E9A820;
+    --accent-ink: #111111;
+  }
+
+  .dark {
+    --bg-canvas: #121211;
+    --bg-surface: #1C1B19;
+    --bg-cream: #2B2416;
+    --text-primary: #F4F1EA;
+    --text-muted: #A6A198;
+    --border-subtle: #2E2C28;
+    --sale-green: #5ECF5E;
+  }
+
+  html {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+}
+
+.font-display {
+  font-family: 'Archivo Black', 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-mono-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

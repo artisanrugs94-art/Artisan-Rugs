@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBootstrappedOwner() {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email == 'artisanrugs94@gmail.com';
+    }
+
+    function isValidImageUpload() {
+      return request.resource != null &&
+        request.resource.size < 8 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    // Product listing imagery: public read, admin write
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isBootstrappedOwner() && isValidImageUpload();
+    }
+
+    // Customer personalisation & custom rug reference uploads (max 8MB image)
+    match /custom_references/{fileName} {
+      allow read: if true;
+      allow create: if isValidImageUpload() && fileName.size() <= 160;
+      allow update, delete: if isBootstrappedOwner();
+    }
+
+    // Production progress photos uploaded by Shop Manager
+    match /production_photos/{orderNumber}/{fileName} {
+      allow read: if true;
+      allow write: if isBootstrappedOwner() && isValidImageUpload();
+    }
+
+    // Review buyer photos
+    match /reviews/{userId}/{fileName} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidImageUpload();
+      allow delete: if isBootstrappedOwner();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

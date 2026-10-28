@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900">
+  <defs>
+    <linearGradient id="wood2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D7CFC4"/>
+      <stop offset="100%" stop-color="#BFB4A6"/>
+    </linearGradient>
+    <filter id="tuft2" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="14" stdDeviation="15" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+  <rect width="900" height="900" fill="url(#wood2)"/>
+  <g filter="url(#tuft2)">
+    <!-- Wings Left & Right -->
+    <path d="M450 340 C310 170 105 180 95 335 C85 455 230 510 355 495 C235 545 155 645 225 725 C295 795 405 695 450 585 C495 695 605 795 675 725 C745 645 665 545 545 495 C670 510 815 455 805 335 C795 180 590 170 450 340 Z" fill="#111111" stroke="#111111" stroke-width="28" stroke-linejoin="round"/>
+    <!-- Upper Wings Fill -->
+    <path d="M430 365 C315 215 140 215 130 335 C122 425 255 470 385 465 Z" fill="#E9A820" stroke="#111111" stroke-width="16"/>
+    <path d="M470 365 C585 215 760 215 770 335 C778 425 645 470 515 465 Z" fill="#E9A820" stroke="#111111" stroke-width="16"/>
+    <!-- Lower Wings Fill -->
+    <path d="M415 495 C280 535 195 630 245 698 C295 752 385 665 432 560 Z" fill="#D62828" stroke="#111111" stroke-width="16"/>
+    <path d="M485 495 C620 535 705 630 655 698 C605 752 515 665 468 560 Z" fill="#D62828" stroke="#111111" stroke-width="16"/>
+    <!-- Wing Eye Spots -->
+    <circle cx="245" cy="345" r="42" fill="#2EC4B6" stroke="#111111" stroke-width="14"/>
+    <circle cx="655" cy="345" r="42" fill="#2EC4B6" stroke="#111111" stroke-width="14"/>
+    <circle cx="245" cy="345" r="14" fill="#F5EBC8"/>
+    <circle cx="655" cy="345" r="14" fill="#F5EBC8"/>
+    <!-- Moth Thorax Skull -->
+    <ellipse cx="450" cy="465" rx="68" ry="135" fill="#111111"/>
+    <circle cx="450" cy="405" r="46" fill="#F5EBC8" stroke="#111111" stroke-width="12"/>
+    <circle cx="433" cy="400" r="10" fill="#111111"/>
+    <circle cx="467" cy="400" r="10" fill="#111111"/>
+    <!-- Striped Abdomen -->
+    <rect x="412" y="490" width="76" height="22" rx="10" fill="#E9A820"/>
+    <rect x="418" y="530" width="64" height="20" rx="10" fill="#E9A820"/>
+    <rect x="426" y="568" width="48" height="18" rx="9" fill="#E9A820"/>
+    <!-- Antennae -->
+    <path d="M425 280 Q370 190 310 185" fill="none" stroke="#111111" stroke-width="18" stroke-linecap="round"/>
+    <path d="M475 280 Q530 190 590 185" fill="none" stroke="#111111" stroke-width="18" stroke-linecap="round"/>
+  </g>
+</svg>

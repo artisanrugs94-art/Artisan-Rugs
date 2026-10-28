@@ -1,0 +1,831 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // =========================================================================
+    // Hardened Global Primitives
+    // =========================================================================
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedOwner() {
+      return isVerifiedUser() && request.auth.token.email == 'artisanrugs94@gmail.com';
+    }
+
+    function isAdminDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isBootstrappedOwner() || isAdminDoc();
+    }
+
+    function isOwnerOrManager() {
+      return isBootstrappedOwner() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role in ['owner', 'manager']
+      );
+    }
+
+    function isBoundedString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isBoundedStringList(arr, maxItems) {
+      return arr is list && arr.size() <= maxItems && (arr.size() == 0 || (arr[0] is string && arr[0].size() <= 500));
+    }
+
+    function isBoundedMapList(arr, maxItems) {
+      return arr is list && arr.size() <= maxItems && (arr.size() == 0 || arr[0] is map);
+    }
+
+    // =========================================================================
+    // Validation Blueprints (Anti-Update-Gap)
+    // =========================================================================
+    function isValidAdmin(data) {
+      return data.keys().hasAll(['uid', 'email', 'name', 'role', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'name', 'role', 'createdAt', 'updatedAt']) &&
+        isValidId(data.uid) &&
+        isBoundedString(data.email, 3, 254) &&
+        isBoundedString(data.name, 1, 100) &&
+        data.role in ['owner', 'manager', 'staff'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+          'title', 'slug', 'description', 'categoryId', 'sectionId', 'tags', 'materials',
+          'images', 'videoUrl', 'basePrice', 'comparePrice', 'sku', 'sizes', 'variations',
+          'combinations', 'allowCustomSize', 'customSizePriceOnRequest', 'personalisation',
+          'stockMode', 'stockCount', 'salePercent', 'saleEndAt', 'processingProfileId',
+          'shippingProfileId', 'freeShipping', 'itemDetails', 'attributes', 'seo',
+          'pinterest', 'featured', 'isBestseller', 'ratingAvg', 'ratingCount', 'status',
+          'scheduledAt', 'qualityScore', 'counters', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'slug', 'description', 'categoryId', 'sectionId', 'tags', 'materials',
+          'images', 'videoUrl', 'basePrice', 'comparePrice', 'sku', 'sizes', 'variations',
+          'combinations', 'allowCustomSize', 'customSizePriceOnRequest', 'personalisation',
+          'stockMode', 'stockCount', 'salePercent', 'saleEndAt', 'processingProfileId',
+          'shippingProfileId', 'freeShipping', 'itemDetails', 'attributes', 'seo',
+          'pinterest', 'featured', 'isBestseller', 'ratingAvg', 'ratingCount', 'status',
+          'scheduledAt', 'qualityScore', 'counters', 'createdAt', 'updatedAt'
+        ]) &&
+        isBoundedString(data.title, 1, 140) &&
+        isBoundedString(data.slug, 1, 160) &&
+        isBoundedString(data.description, 0, 10000) &&
+        isBoundedString(data.categoryId, 1, 128) &&
+        isBoundedString(data.sectionId, 0, 128) &&
+        isBoundedStringList(data.tags, 13) &&
+        isBoundedStringList(data.materials, 10) &&
+        isBoundedMapList(data.images, 20) &&
+        isBoundedString(data.videoUrl, 0, 500) &&
+        data.basePrice is number && data.basePrice >= 0 &&
+        data.comparePrice is number && data.comparePrice >= 0 &&
+        isBoundedString(data.sku, 0, 64) &&
+        isBoundedMapList(data.sizes, 10) &&
+        isBoundedMapList(data.variations, 15) &&
+        isBoundedMapList(data.combinations, 60) &&
+        data.allowCustomSize is bool &&
+        data.customSizePriceOnRequest is bool &&
+        data.personalisation is map &&
+        data.stockMode in ['made_to_order', 'limited'] &&
+        data.stockCount is number && data.stockCount >= 0 &&
+        data.salePercent is number && data.salePercent >= 0 && data.salePercent <= 90 &&
+        isBoundedString(data.saleEndAt, 0, 64) &&
+        isBoundedString(data.processingProfileId, 1, 128) &&
+        isBoundedString(data.shippingProfileId, 1, 128) &&
+        data.freeShipping is bool &&
+        data.itemDetails is map &&
+        data.attributes is map &&
+        data.seo is map &&
+        data.pinterest is map &&
+        data.featured is bool &&
+        data.isBestseller is bool &&
+        data.ratingAvg is number && data.ratingAvg >= 0 && data.ratingAvg <= 5 &&
+        data.ratingCount is number && data.ratingCount >= 0 &&
+        data.status in ['active', 'draft', 'expired', 'sold_out', 'inactive', 'scheduled'] &&
+        isBoundedString(data.scheduledAt, 0, 64) &&
+        data.qualityScore is number && data.qualityScore >= 0 && data.qualityScore <= 100 &&
+        data.counters is map &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name', 'slug', 'description', 'imageUrl', 'sortOrder', 'active', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['name', 'slug', 'description', 'imageUrl', 'sortOrder', 'active', 'createdAt', 'updatedAt']) &&
+        isBoundedString(data.name, 1, 80) &&
+        isBoundedString(data.slug, 1, 100) &&
+        isBoundedString(data.description, 0, 500) &&
+        isBoundedString(data.imageUrl, 0, 500) &&
+        data.sortOrder is number &&
+        data.active is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSection(data) {
+      return data.keys().hasAll(['name', 'slug', 'sortOrder', 'active', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['name', 'slug', 'sortOrder', 'active', 'createdAt', 'updatedAt']) &&
+        isBoundedString(data.name, 1, 80) &&
+        isBoundedString(data.slug, 1, 100) &&
+        data.sortOrder is number &&
+        data.active is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProcessingProfile(data) {
+      return data.keys().hasAll(['name', 'minDays', 'maxDays', 'isDefault', 'badgeText', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['name', 'minDays', 'maxDays', 'isDefault', 'badgeText', 'createdAt', 'updatedAt']) &&
+        isBoundedString(data.name, 1, 100) &&
+        data.minDays is number && data.minDays >= 1 && data.minDays <= 90 &&
+        data.maxDays is number && data.maxDays >= data.minDays && data.maxDays <= 120 &&
+        data.isDefault is bool &&
+        isBoundedString(data.badgeText, 1, 160) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidShippingProfile(data) {
+      return data.keys().hasAll(['name', 'originCountry', 'freeShippingWorldwide', 'zones', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['name', 'originCountry', 'freeShippingWorldwide', 'zones', 'createdAt', 'updatedAt']) &&
+        isBoundedString(data.name, 1, 100) &&
+        isBoundedString(data.originCountry, 2, 64) &&
+        data.freeShippingWorldwide is bool &&
+        isBoundedMapList(data.zones, 20) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSale(data) {
+      return data.keys().hasAll([
+          'name', 'percent', 'scope', 'targetIds', 'excludedIds', 'minOrder',
+          'countries', 'startAt', 'endAt', 'status', 'ordersCount', 'revenueBase',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'name', 'percent', 'scope', 'targetIds', 'excludedIds', 'minOrder',
+          'countries', 'startAt', 'endAt', 'status', 'ordersCount', 'revenueBase',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isBoundedString(data.name, 1, 100) &&
+        data.percent is number && data.percent >= 1 && data.percent <= 90 &&
+        data.scope in ['all', 'sections', 'categories', 'products'] &&
+        isBoundedStringList(data.targetIds, 100) &&
+        isBoundedStringList(data.excludedIds, 100) &&
+        data.minOrder is number && data.minOrder >= 0 &&
+        isBoundedStringList(data.countries, 50) &&
+        isBoundedString(data.startAt, 0, 64) &&
+        isBoundedString(data.endAt, 0, 64) &&
+        data.status in ['active', 'scheduled', 'ended'] &&
+        data.ordersCount is number && data.ordersCount >= 0 &&
+        data.revenueBase is number && data.revenueBase >= 0 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCoupon(data) {
+      return data.keys().hasAll([
+          'code', 'type', 'value', 'minOrder', 'maxUses', 'usedCount',
+          'perCustomerLimit', 'expiresAt', 'active', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'code', 'type', 'value', 'minOrder', 'maxUses', 'usedCount',
+          'perCustomerLimit', 'expiresAt', 'active', 'createdAt', 'updatedAt'
+        ]) &&
+        isBoundedString(data.code, 2, 32) &&
+        data.code.matches('^[A-Z0-9_\\-]+$') &&
+        data.type in ['percent', 'flat', 'free_shipping'] &&
+        data.value is number && data.value >= 0 &&
+        data.minOrder is number && data.minOrder >= 0 &&
+        data.maxUses is number && data.maxUses >= 0 &&
+        data.usedCount is number && data.usedCount >= 0 &&
+        data.perCustomerLimit is number && data.perCustomerLimit >= 0 &&
+        isBoundedString(data.expiresAt, 0, 64) &&
+        data.active is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidReview(data) {
+      return data.keys().hasAll([
+          'productId', 'orderId', 'customerId', 'customerName', 'rating',
+          'qualityRating', 'deliveryRating', 'serviceRating', 'comment',
+          'photos', 'verifiedBuyer', 'status', 'sellerReply', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'productId', 'orderId', 'customerId', 'customerName', 'rating',
+          'qualityRating', 'deliveryRating', 'serviceRating', 'comment',
+          'photos', 'verifiedBuyer', 'status', 'sellerReply', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.productId) &&
+        isBoundedString(data.orderId, 0, 128) &&
+        isBoundedString(data.customerId, 1, 128) &&
+        isBoundedString(data.customerName, 1, 80) &&
+        data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+        data.qualityRating is number && data.qualityRating >= 1 && data.qualityRating <= 5 &&
+        data.deliveryRating is number && data.deliveryRating >= 1 && data.deliveryRating <= 5 &&
+        data.serviceRating is number && data.serviceRating >= 1 && data.serviceRating <= 5 &&
+        isBoundedString(data.comment, 1, 2000) &&
+        isBoundedStringList(data.photos, 5) &&
+        data.verifiedBuyer is bool &&
+        data.status in ['approved', 'pending', 'hidden'] &&
+        isBoundedString(data.sellerReply, 0, 1000) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+          'orderNumber', 'customerId', 'customerEmail', 'customerName', 'customerPhone',
+          'shippingAddress', 'billingAddress', 'orderNotes', 'items', 'subtotalBase',
+          'discountBase', 'couponCode', 'shippingBase', 'taxBase', 'totalBase',
+          'totalCharged', 'displayCurrency', 'chargedCurrency', 'exchangeRateUsed',
+          'paymentMethod', 'paymentStatus', 'paymentId', 'status', 'statusHistory',
+          'productionDaysMax', 'productionDeadline', 'trackingNumber', 'courier',
+          'productionPhotos', 'internalNotes', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'orderNumber', 'customerId', 'customerEmail', 'customerName', 'customerPhone',
+          'shippingAddress', 'billingAddress', 'orderNotes', 'items', 'subtotalBase',
+          'discountBase', 'couponCode', 'shippingBase', 'taxBase', 'totalBase',
+          'totalCharged', 'displayCurrency', 'chargedCurrency', 'exchangeRateUsed',
+          'paymentMethod', 'paymentStatus', 'paymentId', 'status', 'statusHistory',
+          'productionDaysMax', 'productionDeadline', 'trackingNumber', 'courier',
+          'productionPhotos', 'internalNotes', 'createdAt', 'updatedAt'
+        ]) &&
+        isBoundedString(data.orderNumber, 4, 32) &&
+        isBoundedString(data.customerId, 1, 128) &&
+        isBoundedString(data.customerEmail, 3, 254) &&
+        isBoundedString(data.customerName, 1, 120) &&
+        isBoundedString(data.customerPhone, 0, 32) &&
+        data.shippingAddress is map &&
+        data.billingAddress is map &&
+        isBoundedString(data.orderNotes, 0, 1000) &&
+        data.items is list && data.items.size() >= 1 && data.items.size() <= 50 && data.items[0] is map &&
+        data.subtotalBase is number && data.subtotalBase >= 0 &&
+        data.discountBase is number && data.discountBase >= 0 &&
+        isBoundedString(data.couponCode, 0, 32) &&
+        data.shippingBase is number && data.shippingBase >= 0 &&
+        data.taxBase is number && data.taxBase >= 0 &&
+        data.totalBase is number && data.totalBase >= 0 &&
+        data.totalCharged is number && data.totalCharged >= 0 &&
+        isBoundedString(data.displayCurrency, 3, 8) &&
+        isBoundedString(data.chargedCurrency, 3, 8) &&
+        data.exchangeRateUsed is number && data.exchangeRateUsed > 0 &&
+        data.paymentMethod in ['razorpay', 'stripe', 'paypal', 'cod', 'whatsapp_custom'] &&
+        data.paymentStatus in ['Pending', 'Paid', 'COD', 'Awaiting Quote', 'Refunded'] &&
+        isBoundedString(data.paymentId, 0, 128) &&
+        data.status in [
+          'New', 'Confirmed', 'In production', 'Ready to ship', 'Shipped',
+          'Delivered', 'Completed', 'Cancelled', 'Refunded', 'Awaiting price confirmation'
+        ] &&
+        isBoundedMapList(data.statusHistory, 30) &&
+        data.productionDaysMax is number && data.productionDaysMax >= 1 && data.productionDaysMax <= 120 &&
+        isBoundedString(data.productionDeadline, 0, 64) &&
+        isBoundedString(data.trackingNumber, 0, 100) &&
+        isBoundedString(data.courier, 0, 80) &&
+        isBoundedStringList(data.productionPhotos, 10) &&
+        isBoundedString(data.internalNotes, 0, 2000) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidOrderTracking(data) {
+      return data.keys().hasAll([
+          'orderNumber', 'status', 'estimatedDelivery', 'productionDaysMin',
+          'productionDaysMax', 'trackingNumber', 'courier', 'productionPhotos',
+          'statusHistory', 'itemCount', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'orderNumber', 'status', 'estimatedDelivery', 'productionDaysMin',
+          'productionDaysMax', 'trackingNumber', 'courier', 'productionPhotos',
+          'statusHistory', 'itemCount', 'createdAt', 'updatedAt'
+        ]) &&
+        isBoundedString(data.orderNumber, 4, 32) &&
+        isBoundedString(data.status, 2, 40) &&
+        isBoundedString(data.estimatedDelivery, 0, 100) &&
+        data.productionDaysMin is number && data.productionDaysMin >= 1 &&
+        data.productionDaysMax is number && data.productionDaysMax >= data.productionDaysMin &&
+        isBoundedString(data.trackingNumber, 0, 100) &&
+        isBoundedString(data.courier, 0, 80) &&
+        isBoundedStringList(data.productionPhotos, 10) &&
+        isBoundedMapList(data.statusHistory, 30) &&
+        data.itemCount is number && data.itemCount >= 1 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCustomer(data) {
+      return data.keys().hasAll([
+          'uid', 'name', 'email', 'phone', 'country', 'currency', 'language',
+          'favourites', 'followedShop', 'savedAddresses', 'ordersCount',
+          'totalSpentBase', 'tags', 'notes', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'name', 'email', 'phone', 'country', 'currency', 'language',
+          'favourites', 'followedShop', 'savedAddresses', 'ordersCount',
+          'totalSpentBase', 'tags', 'notes', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.uid) &&
+        isBoundedString(data.name, 0, 120) &&
+        isBoundedString(data.email, 3, 254) &&
+        isBoundedString(data.phone, 0, 32) &&
+        isBoundedString(data.country, 2, 8) &&
+        isBoundedString(data.currency, 3, 8) &&
+        isBoundedString(data.language, 2, 8) &&
+        isBoundedStringList(data.favourites, 200) &&
+        data.followedShop is bool &&
+        isBoundedMapList(data.savedAddresses, 5) &&
+        data.ordersCount is number && data.ordersCount >= 0 &&
+        data.totalSpentBase is number && data.totalSpentBase >= 0 &&
+        isBoundedStringList(data.tags, 10) &&
+        isBoundedString(data.notes, 0, 1000) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCart(data) {
+      return data.keys().hasAll(['userId', 'items', 'couponCode', 'updatedAt']) &&
+        data.keys().hasOnly(['userId', 'items', 'couponCode', 'updatedAt']) &&
+        isValidId(data.userId) &&
+        isBoundedMapList(data.items, 30) &&
+        isBoundedString(data.couponCode, 0, 32) &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidConversation(data) {
+      return data.keys().hasAll([
+          'customerId', 'customerName', 'customerEmail', 'productId', 'productTitle',
+          'category', 'starred', 'archived', 'unreadByAdmin', 'unreadByCustomer',
+          'lastMessagePreview', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'customerId', 'customerName', 'customerEmail', 'productId', 'productTitle',
+          'category', 'starred', 'archived', 'unreadByAdmin', 'unreadByCustomer',
+          'lastMessagePreview', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.customerId) &&
+        isBoundedString(data.customerName, 1, 120) &&
+        isBoundedString(data.customerEmail, 3, 254) &&
+        isBoundedString(data.productId, 0, 128) &&
+        isBoundedString(data.productTitle, 0, 140) &&
+        data.category in ['general', 'custom_request', 'order'] &&
+        data.starred is bool &&
+        data.archived is bool &&
+        data.unreadByAdmin is bool &&
+        data.unreadByCustomer is bool &&
+        isBoundedString(data.lastMessagePreview, 1, 300) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['conversationId', 'customerId', 'senderId', 'senderRole', 'text', 'attachmentUrl', 'createdAt']) &&
+        data.keys().hasOnly(['conversationId', 'customerId', 'senderId', 'senderRole', 'text', 'attachmentUrl', 'createdAt']) &&
+        isValidId(data.conversationId) &&
+        isValidId(data.customerId) &&
+        isValidId(data.senderId) &&
+        data.senderRole in ['customer', 'admin'] &&
+        isBoundedString(data.text, 1, 2000) &&
+        isBoundedString(data.attachmentUrl, 0, 500) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidCustomRequest(data) {
+      return data.keys().hasAll([
+          'customerId', 'name', 'email', 'phone', 'country', 'widthCm', 'heightCm',
+          'styleNotes', 'referenceImageUrl', 'status', 'quotedPriceBase',
+          'paymentLinkUrl', 'adminNotes', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'customerId', 'name', 'email', 'phone', 'country', 'widthCm', 'heightCm',
+          'styleNotes', 'referenceImageUrl', 'status', 'quotedPriceBase',
+          'paymentLinkUrl', 'adminNotes', 'createdAt', 'updatedAt'
+        ]) &&
+        isBoundedString(data.customerId, 1, 128) &&
+        isBoundedString(data.name, 1, 120) &&
+        isBoundedString(data.email, 3, 254) &&
+        isBoundedString(data.phone, 0, 32) &&
+        isBoundedString(data.country, 2, 8) &&
+        data.widthCm is number && data.widthCm >= 20 && data.widthCm <= 600 &&
+        data.heightCm is number && data.heightCm >= 20 && data.heightCm <= 600 &&
+        isBoundedString(data.styleNotes, 1, 2000) &&
+        isBoundedString(data.referenceImageUrl, 0, 500) &&
+        data.status in ['New', 'Quoted', 'Accepted', 'Rejected'] &&
+        data.quotedPriceBase is number && data.quotedPriceBase >= 0 &&
+        isBoundedString(data.paymentLinkUrl, 0, 500) &&
+        isBoundedString(data.adminNotes, 0, 1000) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAbandonedCart(data) {
+      return data.keys().hasAll([
+          'email', 'phone', 'country', 'currency', 'totalBase',
+          'itemSummary', 'recovered', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'email', 'phone', 'country', 'currency', 'totalBase',
+          'itemSummary', 'recovered', 'createdAt', 'updatedAt'
+        ]) &&
+        isBoundedString(data.email, 3, 254) &&
+        isBoundedString(data.phone, 0, 32) &&
+        isBoundedString(data.country, 2, 8) &&
+        isBoundedString(data.currency, 3, 8) &&
+        data.totalBase is number && data.totalBase >= 0 &&
+        isBoundedString(data.itemSummary, 1, 500) &&
+        data.recovered is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSubscriber(data) {
+      return data.keys().hasAll(['email', 'country', 'source', 'createdAt']) &&
+        data.keys().hasOnly(['email', 'country', 'source', 'createdAt']) &&
+        isBoundedString(data.email, 3, 254) &&
+        isBoundedString(data.country, 2, 8) &&
+        isBoundedString(data.source, 1, 64) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidPage(data) {
+      return data.keys().hasAll(['slug', 'title', 'content', 'published', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['slug', 'title', 'content', 'published', 'createdAt', 'updatedAt']) &&
+        isBoundedString(data.slug, 1, 100) &&
+        isBoundedString(data.title, 1, 140) &&
+        isBoundedString(data.content, 0, 20000) &&
+        data.published is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSettingDoc(data) {
+      return data.keys().hasAll(['key', 'data', 'updatedAt']) &&
+        data.keys().hasOnly(['key', 'data', 'updatedAt']) &&
+        isBoundedString(data.key, 1, 64) &&
+        data.data is map &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUndoSnapshot(data) {
+      return data.keys().hasAll([
+          'adminId', 'actionLabel', 'affectedCount', 'snapshots',
+          'restored', 'expiresAt', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'adminId', 'actionLabel', 'affectedCount', 'snapshots',
+          'restored', 'expiresAt', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.adminId) &&
+        isBoundedString(data.actionLabel, 1, 200) &&
+        data.affectedCount is number && data.affectedCount >= 1 && data.affectedCount <= 500 &&
+        isBoundedMapList(data.snapshots, 500) &&
+        data.restored is bool &&
+        isBoundedString(data.expiresAt, 1, 64) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSnippet(data) {
+      return data.keys().hasAll(['title', 'kind', 'body', 'templateData', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['title', 'kind', 'body', 'templateData', 'createdAt', 'updatedAt']) &&
+        isBoundedString(data.title, 1, 100) &&
+        data.kind in ['snippet', 'template'] &&
+        isBoundedString(data.body, 0, 10000) &&
+        data.templateData is map &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidFinanceEntry(data) {
+      return data.keys().hasAll(['entryType', 'title', 'category', 'amountBase', 'date', 'status', 'notes', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['entryType', 'title', 'category', 'amountBase', 'date', 'status', 'notes', 'createdAt', 'updatedAt']) &&
+        data.entryType in ['expense', 'payout'] &&
+        isBoundedString(data.title, 1, 140) &&
+        isBoundedString(data.category, 1, 80) &&
+        data.amountBase is number && data.amountBase >= 0 &&
+        isBoundedString(data.date, 4, 32) &&
+        data.status in ['completed', 'pending'] &&
+        isBoundedString(data.notes, 0, 500) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidContactMessage(data) {
+      return data.keys().hasAll(['name', 'email', 'subject', 'message', 'createdAt']) &&
+        data.keys().hasOnly(['name', 'email', 'subject', 'message', 'createdAt']) &&
+        isBoundedString(data.name, 1, 100) &&
+        isBoundedString(data.email, 3, 254) &&
+        isBoundedString(data.subject, 1, 140) &&
+        isBoundedString(data.message, 1, 2000) &&
+        data.createdAt is timestamp;
+    }
+
+    // =========================================================================
+    // Collection Match Blocks (Exhaustive)
+    // =========================================================================
+
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && ((isSignedIn() && request.auth.uid == adminId) || isAdmin());
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(adminId) && isValidAdmin(incoming()) && incoming().uid == adminId && incoming().createdAt == request.time && incoming().updatedAt == request.time && isBootstrappedOwner();
+      allow update: if isValidAdmin(incoming()) && isValidId(adminId) && incoming().uid == existing().uid && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isBootstrappedOwner();
+      allow delete: if isValidId(adminId) && isBootstrappedOwner();
+    }
+
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (existing().status == 'active' || isAdmin());
+      allow list: if existing().status == 'active' || isBootstrappedOwner();
+      allow create: if isValidId(productId) && isValidProduct(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidProduct(incoming()) && isValidId(productId) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(productId) && isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId) && (existing().active == true || isAdmin());
+      allow list: if existing().active == true || isBootstrappedOwner();
+      allow create: if isValidId(categoryId) && isValidCategory(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidCategory(incoming()) && isValidId(categoryId) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(categoryId) && isAdmin();
+    }
+
+    match /sections/{sectionId} {
+      allow get: if isValidId(sectionId) && (existing().active == true || isAdmin());
+      allow list: if existing().active == true || isBootstrappedOwner();
+      allow create: if isValidId(sectionId) && isValidSection(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidSection(incoming()) && isValidId(sectionId) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(sectionId) && isAdmin();
+    }
+
+    match /processingProfiles/{profileId} {
+      allow get: if isValidId(profileId) && (existing().minDays >= 1 || isAdmin());
+      allow list: if existing().minDays >= 1 || isBootstrappedOwner();
+      allow create: if isValidId(profileId) && isValidProcessingProfile(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidProcessingProfile(incoming()) && isValidId(profileId) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(profileId) && isAdmin();
+    }
+
+    match /shippingProfiles/{profileId} {
+      allow get: if isValidId(profileId) && (existing().originCountry is string || isAdmin());
+      allow list: if existing().originCountry is string || isBootstrappedOwner();
+      allow create: if isValidId(profileId) && isValidShippingProfile(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidShippingProfile(incoming()) && isValidId(profileId) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(profileId) && isAdmin();
+    }
+
+    match /sales/{saleId} {
+      allow get: if isValidId(saleId) && (existing().status == 'active' || isAdmin());
+      allow list: if existing().status == 'active' || isBootstrappedOwner();
+      allow create: if isValidId(saleId) && isValidSale(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidSale(incoming()) && isValidId(saleId) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(saleId) && isAdmin();
+    }
+
+    match /coupons/{couponId} {
+      allow get: if isValidId(couponId) && (existing().active == true || isAdmin());
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(couponId) && isValidCoupon(incoming()) && incoming().code == couponId && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidCoupon(incoming()) && isValidId(couponId) && incoming().code == existing().code && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(couponId) && isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow get: if isValidId(reviewId) && (existing().status == 'approved' || (isVerifiedUser() && existing().customerId == request.auth.uid) || isAdmin());
+      allow list: if existing().status == 'approved' || (isVerifiedUser() && existing().customerId == request.auth.uid) || isBootstrappedOwner();
+      allow create: if isValidId(reviewId) && isValidReview(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && (
+        isAdmin() || (
+          isVerifiedUser() &&
+          incoming().customerId == request.auth.uid &&
+          incoming().status == 'pending' &&
+          incoming().sellerReply == '' &&
+          exists(/databases/$(database)/documents/products/$(incoming().productId))
+        )
+      );
+      allow update: if isValidReview(incoming()) && isValidId(reviewId) && incoming().productId == existing().productId && incoming().customerId == existing().customerId && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(reviewId) && isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && ((isVerifiedUser() && existing().customerId == request.auth.uid) || isAdmin());
+      allow list: if (isVerifiedUser() && existing().customerId == request.auth.uid) || isBootstrappedOwner();
+      allow create: if isValidId(orderId) && isValidOrder(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && (
+        isAdmin() || (
+          (incoming().customerId == 'guest' || (isVerifiedUser() && incoming().customerId == request.auth.uid)) &&
+          incoming().status in ['New', 'Awaiting price confirmation'] &&
+          incoming().paymentStatus in ['Pending', 'Paid', 'COD', 'Awaiting Quote'] &&
+          incoming().internalNotes == '' &&
+          incoming().productionPhotos.size() == 0
+        )
+      );
+      allow update: if isValidOrder(incoming()) && isValidId(orderId) && incoming().orderNumber == existing().orderNumber && incoming().customerId == existing().customerId && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && (
+        existing().status != 'Completed' || isAdmin()
+      ) && isAdmin();
+      allow delete: if isValidId(orderId) && isBootstrappedOwner();
+    }
+
+    match /orderTracking/{trackingKey} {
+      allow get: if isValidId(trackingKey);
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(trackingKey) && isValidOrderTracking(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && (
+        isAdmin() || (
+          incoming().status in ['New', 'Awaiting price confirmation'] &&
+          incoming().trackingNumber == '' &&
+          incoming().productionPhotos.size() == 0
+        )
+      );
+      allow update: if isValidOrderTracking(incoming()) && isValidId(trackingKey) && incoming().orderNumber == existing().orderNumber && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(trackingKey) && isBootstrappedOwner();
+    }
+
+    match /customers/{customerId} {
+      allow get: if isValidId(customerId) && ((isVerifiedUser() && request.auth.uid == customerId) || isAdmin());
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(customerId) && isValidCustomer(incoming()) && incoming().uid == customerId && incoming().createdAt == request.time && incoming().updatedAt == request.time && (
+        isAdmin() || (
+          isVerifiedUser() &&
+          request.auth.uid == customerId &&
+          incoming().ordersCount == 0 &&
+          incoming().totalSpentBase == 0 &&
+          incoming().tags.size() == 0 &&
+          incoming().notes == ''
+        )
+      );
+      allow update: if isValidCustomer(incoming()) && isValidId(customerId) && incoming().uid == existing().uid && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && (
+        isAdmin() || (
+          isVerifiedUser() &&
+          request.auth.uid == customerId &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'name', 'phone', 'country', 'currency', 'language',
+            'favourites', 'followedShop', 'savedAddresses', 'updatedAt'
+          ])
+        )
+      );
+      allow delete: if isValidId(customerId) && isBootstrappedOwner();
+    }
+
+    match /carts/{userId} {
+      allow get: if isValidId(userId) && ((isVerifiedUser() && request.auth.uid == userId) || isAdmin());
+      allow list: if false;
+      allow create: if isValidId(userId) && isValidCart(incoming()) && incoming().userId == userId && incoming().updatedAt == request.time && isVerifiedUser() && request.auth.uid == userId;
+      allow update: if isValidCart(incoming()) && isValidId(userId) && incoming().userId == existing().userId && incoming().updatedAt == request.time && isVerifiedUser() && request.auth.uid == userId;
+      allow delete: if isValidId(userId) && isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    match /conversations/{conversationId} {
+      allow get: if isValidId(conversationId) && ((isVerifiedUser() && existing().customerId == request.auth.uid) || isAdmin());
+      allow list: if (isVerifiedUser() && existing().customerId == request.auth.uid) || isBootstrappedOwner();
+      allow create: if isValidId(conversationId) && isValidConversation(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && (
+        isAdmin() || (isVerifiedUser() && incoming().customerId == request.auth.uid)
+      );
+      allow update: if isValidConversation(incoming()) && isValidId(conversationId) && incoming().customerId == existing().customerId && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && (
+        isAdmin() || (
+          isVerifiedUser() &&
+          existing().customerId == request.auth.uid &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['lastMessagePreview', 'unreadByAdmin', 'unreadByCustomer', 'archived', 'updatedAt'])
+        )
+      );
+      allow delete: if isValidId(conversationId) && isAdmin();
+
+      match /messages/{messageId} {
+        allow get: if isValidId(conversationId) && isValidId(messageId) && (
+          isAdmin() || (
+            isVerifiedUser() &&
+            get(/databases/$(database)/documents/conversations/$(conversationId)).data.customerId == request.auth.uid
+          )
+        );
+        allow list: if isBootstrappedOwner() || (
+          isVerifiedUser() &&
+          existing().customerId == request.auth.uid
+        );
+        allow create: if isValidId(conversationId) && isValidId(messageId) && isValidMessage(incoming()) && incoming().conversationId == conversationId && incoming().createdAt == request.time &&
+          get(/databases/$(database)/documents/conversations/$(conversationId)).data.customerId == incoming().customerId && (
+          (isAdmin() && incoming().senderRole == 'admin' && incoming().senderId == request.auth.uid) ||
+          (
+            isVerifiedUser() &&
+            incoming().senderRole == 'customer' &&
+            incoming().senderId == request.auth.uid &&
+            incoming().customerId == request.auth.uid
+          )
+        );
+        allow update, delete: if false;
+      }
+    }
+
+    match /customRequests/{requestId} {
+      allow get: if isValidId(requestId) && ((isVerifiedUser() && existing().customerId == request.auth.uid) || isAdmin());
+      allow list: if (isVerifiedUser() && existing().customerId == request.auth.uid) || isBootstrappedOwner();
+      allow create: if isValidId(requestId) && isValidCustomRequest(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && (
+        isAdmin() || (
+          (incoming().customerId == 'guest' || (isVerifiedUser() && incoming().customerId == request.auth.uid)) &&
+          incoming().status == 'New' &&
+          incoming().quotedPriceBase == 0 &&
+          incoming().paymentLinkUrl == '' &&
+          incoming().adminNotes == ''
+        )
+      );
+      allow update: if isValidCustomRequest(incoming()) && isValidId(requestId) && incoming().customerId == existing().customerId && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && (
+        existing().status != 'Accepted' || isAdmin()
+      ) && isAdmin();
+      allow delete: if isValidId(requestId) && isAdmin();
+    }
+
+    match /abandonedCarts/{cartId} {
+      allow get: if isValidId(cartId) && isAdmin();
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(cartId) && isValidAbandonedCart(incoming()) && incoming().recovered == false && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isValidAbandonedCart(incoming()) && isValidId(cartId) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(cartId) && isAdmin();
+    }
+
+    match /subscribers/{subscriberId} {
+      allow get: if isValidId(subscriberId) && isAdmin();
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(subscriberId) && isValidSubscriber(incoming()) && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(subscriberId) && isAdmin();
+    }
+
+    match /pages/{pageSlug} {
+      allow get: if isValidId(pageSlug) && (existing().published == true || isAdmin());
+      allow list: if existing().published == true || isBootstrappedOwner();
+      allow create: if isValidId(pageSlug) && isValidPage(incoming()) && incoming().slug == pageSlug && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidPage(incoming()) && isValidId(pageSlug) && incoming().slug == existing().slug && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(pageSlug) && isAdmin();
+    }
+
+    match /settings/{docId} {
+      allow get: if isValidId(docId) && (docId in ['general', 'exchangeRates', 'homepage', 'integrationsPublic'] || isOwnerOrManager());
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(docId) && isValidSettingDoc(incoming()) && incoming().key == docId && incoming().updatedAt == request.time && isOwnerOrManager();
+      allow update: if isValidSettingDoc(incoming()) && isValidId(docId) && incoming().key == existing().key && incoming().updatedAt == request.time && isOwnerOrManager();
+      allow delete: if false;
+    }
+
+    match /private_settings/{docId} {
+      allow read: if false;
+      allow create: if isValidId(docId) && isValidSettingDoc(incoming()) && incoming().key == docId && incoming().updatedAt == request.time && isOwnerOrManager();
+      allow update: if isValidSettingDoc(incoming()) && isValidId(docId) && incoming().key == existing().key && incoming().updatedAt == request.time && isOwnerOrManager();
+      allow delete: if false;
+    }
+
+    match /undo/{undoId} {
+      allow get: if isValidId(undoId) && isAdmin();
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(undoId) && isValidUndoSnapshot(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidUndoSnapshot(incoming()) && isValidId(undoId) && incoming().adminId == existing().adminId && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(undoId) && isAdmin();
+    }
+
+    match /snippets/{snippetId} {
+      allow get: if isValidId(snippetId) && isAdmin();
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(snippetId) && isValidSnippet(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isAdmin();
+      allow update: if isValidSnippet(incoming()) && isValidId(snippetId) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isAdmin();
+      allow delete: if isValidId(snippetId) && isAdmin();
+    }
+
+    match /finances/{entryId} {
+      allow get: if isValidId(entryId) && isOwnerOrManager();
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(entryId) && isValidFinanceEntry(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time && isOwnerOrManager();
+      allow update: if isValidFinanceEntry(incoming()) && isValidId(entryId) && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && isOwnerOrManager();
+      allow delete: if isValidId(entryId) && isOwnerOrManager();
+    }
+
+    match /contactMessages/{msgId} {
+      allow get: if isValidId(msgId) && isAdmin();
+      allow list: if isBootstrappedOwner();
+      allow create: if isValidId(msgId) && isValidContactMessage(incoming()) && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(msgId) && isAdmin();
+    }
+  }
+}

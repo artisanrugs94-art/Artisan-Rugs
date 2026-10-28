@@ -1,0 +1,498 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin",
+      "description": "Shop Manager staff member with role-based permissions.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "role": { "type": "string", "enum": ["owner", "manager", "staff"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "name", "role", "createdAt", "updatedAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Handmade tufted rug listing with variations, sizes, and counters.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^[a-z0-9\\-]+$" },
+        "description": { "type": "string", "maxLength": 10000 },
+        "categoryId": { "type": "string", "maxLength": 128 },
+        "sectionId": { "type": "string", "maxLength": 128 },
+        "tags": { "type": "array", "description": "Up to 13 Etsy-style search tags" },
+        "materials": { "type": "array", "description": "Up to 10 materials" },
+        "images": { "type": "array", "description": "Up to 20 listing images with alt and variationId" },
+        "videoUrl": { "type": "string", "maxLength": 500 },
+        "basePrice": { "type": "number" },
+        "comparePrice": { "type": "number" },
+        "sku": { "type": "string", "maxLength": 64 },
+        "sizes": { "type": "array", "description": "Standard rug sizes with dimensions and base prices" },
+        "variations": { "type": "array", "description": "Color/style variations with swatches and images" },
+        "combinations": { "type": "array", "description": "Size x Color matrix rows" },
+        "allowCustomSize": { "type": "boolean" },
+        "customSizePriceOnRequest": { "type": "boolean" },
+        "personalisation": { "type": "object" },
+        "stockMode": { "type": "string", "enum": ["made_to_order", "limited"] },
+        "stockCount": { "type": "number" },
+        "salePercent": { "type": "number" },
+        "saleEndAt": { "type": "string", "maxLength": 64 },
+        "processingProfileId": { "type": "string", "maxLength": 128 },
+        "shippingProfileId": { "type": "string", "maxLength": 128 },
+        "freeShipping": { "type": "boolean" },
+        "itemDetails": { "type": "object" },
+        "attributes": { "type": "object" },
+        "seo": { "type": "object" },
+        "pinterest": { "type": "object" },
+        "featured": { "type": "boolean" },
+        "isBestseller": { "type": "boolean" },
+        "ratingAvg": { "type": "number" },
+        "ratingCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "draft", "expired", "sold_out", "inactive", "scheduled"] },
+        "scheduledAt": { "type": "string", "maxLength": 64 },
+        "qualityScore": { "type": "number" },
+        "counters": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "slug", "description", "categoryId", "sectionId", "basePrice", "status", "createdAt", "updatedAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Storefront rug category.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "description": { "type": "string", "maxLength": 500 },
+        "imageUrl": { "type": "string", "maxLength": 500 },
+        "sortOrder": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "slug", "active", "sortOrder", "createdAt", "updatedAt"]
+    },
+    "Section": {
+      "title": "Section",
+      "description": "Etsy-style shop section.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "sortOrder": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "slug", "active", "sortOrder", "createdAt", "updatedAt"]
+    },
+    "ProcessingProfile": {
+      "title": "ProcessingProfile",
+      "description": "Made-to-order production window profile (default 10-15 days).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "minDays": { "type": "number" },
+        "maxDays": { "type": "number" },
+        "isDefault": { "type": "boolean" },
+        "badgeText": { "type": "string", "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "minDays", "maxDays", "isDefault", "badgeText", "createdAt", "updatedAt"]
+    },
+    "ShippingProfile": {
+      "title": "ShippingProfile",
+      "description": "Origin country and zone-based shipping rates and transit days.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "originCountry": { "type": "string", "maxLength": 64 },
+        "freeShippingWorldwide": { "type": "boolean" },
+        "zones": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "originCountry", "freeShippingWorldwide", "zones", "createdAt", "updatedAt"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Scheduled or active percentage discount campaign.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "percent": { "type": "number" },
+        "scope": { "type": "string", "enum": ["all", "sections", "categories", "products"] },
+        "targetIds": { "type": "array" },
+        "excludedIds": { "type": "array" },
+        "minOrder": { "type": "number" },
+        "countries": { "type": "array" },
+        "startAt": { "type": "string", "maxLength": 64 },
+        "endAt": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["active", "scheduled", "ended"] },
+        "ordersCount": { "type": "number" },
+        "revenueBase": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "percent", "scope", "status", "startAt", "endAt", "createdAt", "updatedAt"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Promotional discount code.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "minLength": 2, "maxLength": 32, "pattern": "^[A-Z0-9_\\-]+$" },
+        "type": { "type": "string", "enum": ["percent", "flat", "free_shipping"] },
+        "value": { "type": "number" },
+        "minOrder": { "type": "number" },
+        "maxUses": { "type": "number" },
+        "usedCount": { "type": "number" },
+        "perCustomerLimit": { "type": "number" },
+        "expiresAt": { "type": "string", "maxLength": 64 },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["code", "type", "value", "active", "createdAt", "updatedAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Verified buyer product review with sub-ratings and moderation.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "maxLength": 128 },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "rating": { "type": "number" },
+        "qualityRating": { "type": "number" },
+        "deliveryRating": { "type": "number" },
+        "serviceRating": { "type": "number" },
+        "comment": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "photos": { "type": "array" },
+        "verifiedBuyer": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["approved", "pending", "hidden"] },
+        "sellerReply": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "customerId", "customerName", "rating", "comment", "status", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order with multi-currency totals and 10-15 day production tracking.",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string", "maxLength": 32 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerEmail": { "type": "string", "format": "email", "maxLength": 254 },
+        "customerName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "customerPhone": { "type": "string", "maxLength": 32 },
+        "shippingAddress": { "type": "object" },
+        "billingAddress": { "type": "object" },
+        "orderNotes": { "type": "string", "maxLength": 1000 },
+        "items": { "type": "array" },
+        "subtotalBase": { "type": "number" },
+        "discountBase": { "type": "number" },
+        "couponCode": { "type": "string", "maxLength": 32 },
+        "shippingBase": { "type": "number" },
+        "taxBase": { "type": "number" },
+        "totalBase": { "type": "number" },
+        "totalCharged": { "type": "number" },
+        "displayCurrency": { "type": "string", "maxLength": 8 },
+        "chargedCurrency": { "type": "string", "maxLength": 8 },
+        "exchangeRateUsed": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["razorpay", "stripe", "paypal", "cod", "whatsapp_custom"] },
+        "paymentStatus": { "type": "string", "enum": ["Pending", "Paid", "COD", "Awaiting Quote", "Refunded"] },
+        "paymentId": { "type": "string", "maxLength": 128 },
+        "status": {
+          "type": "string",
+          "enum": ["New", "Confirmed", "In production", "Ready to ship", "Shipped", "Delivered", "Completed", "Cancelled", "Refunded", "Awaiting price confirmation"]
+        },
+        "statusHistory": { "type": "array" },
+        "productionDaysMax": { "type": "number" },
+        "productionDeadline": { "type": "string", "maxLength": 64 },
+        "trackingNumber": { "type": "string", "maxLength": 100 },
+        "courier": { "type": "string", "maxLength": 80 },
+        "productionPhotos": { "type": "array" },
+        "internalNotes": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderNumber", "customerId", "customerEmail", "customerName", "items", "totalBase", "totalCharged", "displayCurrency", "chargedCurrency", "exchangeRateUsed", "paymentMethod", "paymentStatus", "status", "createdAt", "updatedAt"]
+    },
+    "OrderTracking": {
+      "title": "OrderTracking",
+      "description": "Non-PII order status projection keyed by orderNumber + email hash.",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string", "maxLength": 32 },
+        "status": { "type": "string", "maxLength": 40 },
+        "estimatedDelivery": { "type": "string", "maxLength": 100 },
+        "productionDaysMin": { "type": "number" },
+        "productionDaysMax": { "type": "number" },
+        "trackingNumber": { "type": "string", "maxLength": 100 },
+        "courier": { "type": "string", "maxLength": 80 },
+        "productionPhotos": { "type": "array" },
+        "statusHistory": { "type": "array" },
+        "itemCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderNumber", "status", "productionDaysMin", "productionDaysMax", "itemCount", "createdAt", "updatedAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer profile, favourites, region preferences, and saved addresses.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "country": { "type": "string", "maxLength": 8 },
+        "currency": { "type": "string", "maxLength": 8 },
+        "language": { "type": "string", "maxLength": 8 },
+        "favourites": { "type": "array" },
+        "followedShop": { "type": "boolean" },
+        "savedAddresses": { "type": "array" },
+        "ordersCount": { "type": "number" },
+        "totalSpentBase": { "type": "number" },
+        "tags": { "type": "array" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "country", "currency", "language", "favourites", "followedShop", "ordersCount", "totalSpentBase", "createdAt", "updatedAt"]
+    },
+    "Cart": {
+      "title": "Cart",
+      "description": "Synced shopping cart for authenticated customer.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "items": { "type": "array" },
+        "couponCode": { "type": "string", "maxLength": 32 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "items", "couponCode", "updatedAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Buyer-seller messaging thread.",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 120 },
+        "customerEmail": { "type": "string", "maxLength": 254 },
+        "productId": { "type": "string", "maxLength": 128 },
+        "productTitle": { "type": "string", "maxLength": 140 },
+        "category": { "type": "string", "enum": ["general", "custom_request", "order"] },
+        "starred": { "type": "boolean" },
+        "archived": { "type": "boolean" },
+        "unreadByAdmin": { "type": "boolean" },
+        "unreadByCustomer": { "type": "boolean" },
+        "lastMessagePreview": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "customerName", "customerEmail", "category", "starred", "archived", "unreadByAdmin", "unreadByCustomer", "lastMessagePreview", "createdAt", "updatedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Individual message inside a conversation subcollection.",
+      "type": "object",
+      "properties": {
+        "conversationId": { "type": "string", "maxLength": 128 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "senderId": { "type": "string", "maxLength": 128 },
+        "senderRole": { "type": "string", "enum": ["customer", "admin"] },
+        "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "attachmentUrl": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["conversationId", "customerId", "senderId", "senderRole", "text", "attachmentUrl", "createdAt"]
+    },
+    "CustomRequest": {
+      "title": "CustomRequest",
+      "description": "Custom rug size/design inquiry with quote builder.",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "country": { "type": "string", "maxLength": 8 },
+        "widthCm": { "type": "number" },
+        "heightCm": { "type": "number" },
+        "styleNotes": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "referenceImageUrl": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["New", "Quoted", "Accepted", "Rejected"] },
+        "quotedPriceBase": { "type": "number" },
+        "paymentLinkUrl": { "type": "string", "maxLength": 500 },
+        "adminNotes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "name", "email", "widthCm", "heightCm", "styleNotes", "status", "quotedPriceBase", "createdAt", "updatedAt"]
+    },
+    "AbandonedCart": {
+      "title": "AbandonedCart",
+      "description": "Abandoned checkout lead captured for WhatsApp/email recovery.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "country": { "type": "string", "maxLength": 8 },
+        "currency": { "type": "string", "maxLength": 8 },
+        "totalBase": { "type": "number" },
+        "itemSummary": { "type": "string", "maxLength": 500 },
+        "recovered": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "phone", "country", "currency", "totalBase", "itemSummary", "recovered", "createdAt", "updatedAt"]
+    },
+    "Subscriber": {
+      "title": "Subscriber",
+      "description": "Newsletter subscriber entry.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "country": { "type": "string", "maxLength": 8 },
+        "source": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "country", "source", "createdAt"]
+    },
+    "Page": {
+      "title": "Page",
+      "description": "Editable static policy/guide page.",
+      "type": "object",
+      "properties": {
+        "slug": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 140 },
+        "content": { "type": "string", "maxLength": 20000 },
+        "published": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["slug", "title", "content", "published", "createdAt", "updatedAt"]
+    },
+    "PublicSetting": {
+      "title": "PublicSetting",
+      "description": "Public storefront configuration, homepage layout, and cached exchange rates.",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "maxLength": 64 },
+        "data": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["key", "data", "updatedAt"]
+    },
+    "PrivateSetting": {
+      "title": "PrivateSetting",
+      "description": "Write-only secret integration configuration unreadable by client SDKs.",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "maxLength": 64 },
+        "data": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["key", "data", "updatedAt"]
+    },
+    "UndoSnapshot": {
+      "title": "UndoSnapshot",
+      "description": "24-hour snapshot of listing values prior to a bulk edit.",
+      "type": "object",
+      "properties": {
+        "adminId": { "type": "string", "maxLength": 128 },
+        "actionLabel": { "type": "string", "maxLength": 200 },
+        "affectedCount": { "type": "number" },
+        "snapshots": { "type": "array" },
+        "restored": { "type": "boolean" },
+        "expiresAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["adminId", "actionLabel", "affectedCount", "snapshots", "restored", "expiresAt", "createdAt", "updatedAt"]
+    },
+    "Snippet": {
+      "title": "Snippet",
+      "description": "Reusable text snippet or listing template.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "kind": { "type": "string", "enum": ["snippet", "template"] },
+        "body": { "type": "string", "maxLength": 10000 },
+        "templateData": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "kind", "body", "createdAt", "updatedAt"]
+    },
+    "FinanceEntry": {
+      "title": "FinanceEntry",
+      "description": "Expense or payout ledger entry visible only to Owner/Manager.",
+      "type": "object",
+      "properties": {
+        "entryType": { "type": "string", "enum": ["expense", "payout"] },
+        "title": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "category": { "type": "string", "maxLength": 80 },
+        "amountBase": { "type": "number" },
+        "date": { "type": "string", "maxLength": 32 },
+        "status": { "type": "string", "enum": ["completed", "pending"] },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["entryType", "title", "category", "amountBase", "date", "status", "createdAt", "updatedAt"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Customer message submitted via Contact page.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "subject": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "subject", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": { "schema": "Admin", "description": "Admin role assignments." },
+    "/products/{productId}": { "schema": "Product", "description": "Rug catalog listings." },
+    "/categories/{categoryId}": { "schema": "Category", "description": "Storefront categories." },
+    "/sections/{sectionId}": { "schema": "Section", "description": "Shop sections." },
+    "/processingProfiles/{profileId}": { "schema": "ProcessingProfile", "description": "Production processing profiles." },
+    "/shippingProfiles/{profileId}": { "schema": "ShippingProfile", "description": "Shipping rate profiles." },
+    "/sales/{saleId}": { "schema": "Sale", "description": "Sales and discount campaigns." },
+    "/coupons/{couponId}": { "schema": "Coupon", "description": "Coupon codes." },
+    "/reviews/{reviewId}": { "schema": "Review", "description": "Product reviews." },
+    "/orders/{orderId}": { "schema": "Order", "description": "Customer orders." },
+    "/orderTracking/{trackingKey}": { "schema": "OrderTracking", "description": "Sanitized non-PII tracking projections." },
+    "/customers/{customerId}": { "schema": "Customer", "description": "Customer profiles and preferences." },
+    "/carts/{userId}": { "schema": "Cart", "description": "Synced carts." },
+    "/conversations/{conversationId}": { "schema": "Conversation", "description": "Buyer-seller threads." },
+    "/conversations/{conversationId}/messages/{messageId}": { "schema": "Message", "description": "Conversation messages." },
+    "/customRequests/{requestId}": { "schema": "CustomRequest", "description": "Custom rug requests." },
+    "/abandonedCarts/{cartId}": { "schema": "AbandonedCart", "description": "Abandoned checkout leads." },
+    "/subscribers/{subscriberId}": { "schema": "Subscriber", "description": "Newsletter subscribers." },
+    "/pages/{pageSlug}": { "schema": "Page", "description": "Static CMS pages." },
+    "/settings/{docId}": { "schema": "PublicSetting", "description": "Public storefront settings and exchange rates." },
+    "/private_settings/{docId}": { "schema": "PrivateSetting", "description": "Write-only secret settings." },
+    "/undo/{undoId}": { "schema": "UndoSnapshot", "description": "Bulk edit undo snapshots." },
+    "/snippets/{snippetId}": { "schema": "Snippet", "description": "Saved listing snippets and templates." },
+    "/finances/{entryId}": { "schema": "FinanceEntry", "description": "Expenses and payouts." },
+    "/contactMessages/{msgId}": { "schema": "ContactMessage", "description": "Contact form submissions." }
+  }
+}

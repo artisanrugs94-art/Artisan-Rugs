@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900">
+  <defs>
+    <linearGradient id="wood1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6B4C35"/>
+      <stop offset="50%" stop-color="#583C28"/>
+      <stop offset="100%" stop-color="#432C1D"/>
+    </linearGradient>
+    <filter id="tuft1" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="900" height="900" fill="url(#wood1)"/>
+  <g stroke="#3A2517" stroke-width="3" opacity="0.45">
+    <line x1="0" y1="150" x2="900" y2="150"/>
+    <line x1="0" y1="300" x2="900" y2="300"/>
+    <line x1="0" y1="450" x2="900" y2="450"/>
+    <line x1="0" y1="600" x2="900" y2="600"/>
+    <line x1="0" y1="750" x2="900" y2="750"/>
+  </g>
+  <g filter="url(#tuft1)">
+    <!-- Outer thick black tufted border -->
+    <path d="M450 115 C300 115 205 230 205 385 C205 520 265 650 320 755 L580 755 C635 650 695 520 695 385 C695 230 600 115 450 115 Z" fill="#111111" stroke="#111111" stroke-width="36" stroke-linejoin="round"/>
+    <!-- Grim Reaper Cloak -->
+    <path d="M450 140 C325 140 240 245 240 385 C240 500 290 615 335 720 L565 720 C610 615 660 500 660 385 C660 245 575 140 450 140 Z" fill="#1E2229" stroke="#111111" stroke-width="18"/>
+    <!-- Skull Face -->
+    <path d="M355 320 C355 245 395 205 450 205 C505 205 545 245 545 320 C545 370 520 405 505 430 L505 480 L395 480 L395 430 C380 405 355 370 355 320 Z" fill="#F5EBC8" stroke="#111111" stroke-width="18" stroke-linejoin="round"/>
+    <!-- Eye Sockets -->
+    <ellipse cx="408" cy="325" rx="30" ry="36" fill="#111111"/>
+    <ellipse cx="492" cy="325" rx="30" ry="36" fill="#111111"/>
+    <circle cx="408" cy="325" r="9" fill="#D62828"/>
+    <circle cx="492" cy="325" r="9" fill="#D62828"/>
+    <!-- Nose & Teeth -->
+    <polygon points="450,362 434,398 466,398" fill="#111111"/>
+    <line x1="420" y1="435" x2="420" y2="478" stroke="#111111" stroke-width="12"/>
+    <line x1="450" y1="435" x2="450" y2="478" stroke="#111111" stroke-width="12"/>
+    <line x1="480" y1="435" x2="480" y2="478" stroke="#111111" stroke-width="12"/>
+    <!-- Scythe Blade Arch -->
+    <path d="M180 275 C270 120 520 95 720 220 C605 190 365 205 235 315 Z" fill="#2EC4B6" stroke="#111111" stroke-width="18" stroke-linejoin="round"/>
+    <!-- Traditional Crimson Rose at Bottom -->
+    <g transform="translate(450, 625)">
+      <path d="M-155 10 C-190 -40 -120 -85 -75 -35 Z" fill="#2F6B2F" stroke="#111111" stroke-width="16"/>
+      <path d="M155 10 C190 -40 120 -85 75 -35 Z" fill="#2F6B2F" stroke="#111111" stroke-width="16"/>
+      <circle cx="0" cy="0" r="96" fill="#D62828" stroke="#111111" stroke-width="18"/>
+      <path d="M-55 -20 C-20 -70 40 -65 60 -15 C45 35 -35 45 -55 -20 Z" fill="#F5EBC8" stroke="#111111" stroke-width="14"/>
+      <circle cx="4" cy="-6" r="28" fill="#E9A820" stroke="#111111" stroke-width="14"/>
+    </g>
+  </g>
+</svg>
